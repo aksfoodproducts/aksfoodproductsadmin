@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AKS Food Products | Admin Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box}
+:root{
+  --forest:#173b2a;--deep:#0c2117;--leaf:#286b45;
+  --gold:#d8a64d;--gold-light:#f4d58b;--cream:#fffaf1;
+  --ink:#243329;--muted:#718075;--line:#e7ece5;
+}
+body{margin:0;font-family:"DM Sans",Arial,sans-serif;background:linear-gradient(180deg,#f3f7f1 0%,#fffaf1 48%,#f6f8f3 100%);color:var(--ink);min-height:100vh}
+button{border:0;padding:10px 15px;border-radius:9px;cursor:pointer;font:inherit;font-weight:700;transition:transform .2s,filter .2s,box-shadow .2s}
+button:disabled{opacity:.6;cursor:not-allowed}
+button:not(:disabled):hover{filter:brightness(1.04);transform:translateY(-1px)}
+.admin-header{min-height:104px;padding:16px clamp(18px,5vw,64px);display:flex;align-items:center;justify-content:space-between;gap:20px;background:linear-gradient(115deg,#091d13,#173b2a 58%,#245239);color:#fff;border-bottom:3px solid var(--gold);box-shadow:0 8px 28px rgba(12,33,23,.18)}
+.admin-brand{display:flex;align-items:center;gap:16px;min-width:0}
+.admin-logo-frame{width:70px;height:70px;flex:0 0 70px;display:grid;place-items:center;position:relative;padding:5px;border-radius:18px;background:#fffdf7;border:1px solid rgba(244,213,139,.85);box-shadow:0 5px 18px rgba(0,0,0,.22);overflow:hidden}
+.admin-logo{width:100%;height:100%;object-fit:contain;border-radius:12px}
+.logo-fallback{display:none;position:absolute;inset:5px;place-items:center;border-radius:12px;background:var(--cream);color:var(--forest);font-family:Georgia,serif;font-size:20px;font-weight:800}
+.admin-brand-copy{min-width:0}
+.brand-kicker{margin:0 0 4px;color:var(--gold-light);font-size:10px;font-weight:800;letter-spacing:2px}
+.admin-brand-copy h1{margin:0;color:#fff;font:700 clamp(20px,3vw,28px)/1.15 Georgia,serif}
+.admin-brand-copy h1 span{color:var(--gold-light)}
+.admin-subtitle{margin:5px 0 0;color:rgba(255,255,255,.72);font-size:12px}
+.logout{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:43px;padding:10px 19px;border-radius:999px;border:1px solid var(--gold-light);background:linear-gradient(135deg,#f5d88e,#d5a64b);color:var(--forest);font-size:13px;font-weight:800}
+.admin-layout{display:flex;min-height:calc(100vh - 104px);align-items:stretch}
+.admin-sidebar{width:255px;flex:0 0 255px;background:linear-gradient(180deg,#10291c,#173b2a 70%,#214b32);color:#fff;padding:22px 15px;position:sticky;top:0;height:100vh;overflow-y:auto;box-shadow:8px 0 24px rgba(12,33,23,.08)}
+.sidebar-brand{display:flex;align-items:center;gap:12px;padding:8px 10px 22px;margin-bottom:20px;border-bottom:1px solid rgba(255,255,255,.16)}
+.sidebar-logo-frame{width:52px;height:52px;flex:0 0 52px;position:relative;display:grid;place-items:center;padding:4px;background:var(--cream);border:1px solid var(--gold);border-radius:13px;overflow:hidden}
+.sidebar-logo{width:100%;height:100%;object-fit:contain}
+.sidebar-logo-fallback{display:none;position:absolute;inset:4px;place-items:center;background:var(--cream);color:var(--forest);font-weight:900;border-radius:9px}
+.sidebar-brand-text{display:flex;flex-direction:column;gap:4px;min-width:0}
+.sidebar-brand-text strong{color:var(--gold-light);font-size:14px;letter-spacing:1px}
+.sidebar-brand-text span{color:rgba(255,255,255,.7);font-size:11px}
+.sidebar-label{margin:4px 12px 13px;color:#c7d7c9;font-size:10px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase}
+.sidebar-nav{display:grid;gap:7px}
+.sidebar-link{display:flex;align-items:center;gap:12px;min-height:54px;padding:9px 12px;border-radius:13px;color:rgba(255,255,255,.82);text-decoration:none;font-size:13px;font-weight:700;border:1px solid transparent;transition:all .22s ease}
+.sidebar-link:hover{background:rgba(255,255,255,.09);color:#fff;transform:translateX(3px)}
+.sidebar-link.active{background:linear-gradient(110deg,rgba(216,166,77,.24),rgba(255,255,255,.08));color:#ffe3a7;border-color:rgba(244,213,139,.35);box-shadow:inset 4px 0 var(--gold)}
+.sidebar-icon{width:38px;height:38px;flex:0 0 38px;display:grid;place-items:center;border-radius:12px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.08);color:var(--gold-light);transition:all .22s ease}
+.sidebar-icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sidebar-link.active .sidebar-icon{background:linear-gradient(135deg,#d8a64d,#f4d58b);color:var(--forest);border-color:transparent;box-shadow:0 4px 12px rgba(216,166,77,.2)}
+.sidebar-link:hover .sidebar-icon{background:rgba(216,166,77,.2);color:#ffe3a7}
+.sidebar-foot{margin:28px 7px 0;padding:14px 12px;border:1px solid rgba(255,255,255,.14);border-radius:12px;color:#d7e2d8;font-size:11px;line-height:1.6}
+.admin-content{flex:1;min-width:0}
+main{max-width:1250px;margin:30px auto 55px;padding:0 28px}
+.admin-section{display:none!important}
+.admin-section.active-section{display:block!important}
+#overview.admin-section.active-section{display:grid!important}
+.admin-nav{display:none}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:18px}
+.stat,.panel{background:rgba(255,255,255,.96);border:1px solid rgba(23,59,42,.08);border-radius:17px;box-shadow:0 8px 28px rgba(23,59,42,.065)}
+.stat{position:relative;overflow:hidden;padding:23px 24px}
+.stat:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--gold),var(--leaf))}
+.stat h3{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:0 0 13px}
+.stat p{font:700 34px/1 Georgia,serif;color:var(--forest);margin:0}
+.stat small{display:block;color:var(--muted);margin-top:9px;font-size:11px}
+.panel{margin-top:22px;padding:26px}
+.panel h2{margin:0 0 20px;color:var(--forest);font:700 23px/1.2 Georgia,serif}
+.panel h3{color:var(--forest)}
+label{font-size:13px;color:#35483b;font-weight:700}
+input:not([type=checkbox]):not([type=file]),textarea,select{border:1px solid #dce5dc;border-radius:9px;background:#fff;padding:12px 13px;color:var(--ink);font:inherit}
+input:not([type=checkbox]):not([type=file]),textarea{width:100%;margin:7px 0 13px}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--leaf);box-shadow:0 0 0 3px rgba(40,107,69,.12)}
+textarea{min-height:75px;resize:vertical}
+.primary{background:linear-gradient(135deg,#245d3c,#17452e);color:#fff;padding:12px 20px}
+.secondary{background:linear-gradient(135deg,#f4d58b,#d8a64d);color:var(--forest);padding:11px 17px}
+.danger{background:#b83232;color:#fff;padding:10px 14px}
+.hidden{display:none!important}
+#status{margin-top:12px;font-weight:700;overflow-wrap:anywhere;padding:10px 12px;border-radius:9px}
+#status:empty{display:none}
+.upload-box{border:2px dashed #a9c0aa;background:#f7faf5;border-radius:14px;padding:25px 15px;text-align:center;margin:10px 0 15px}
+.upload-icon{font-size:42px;margin-bottom:10px}
+.upload-box p{color:#666;font-size:14px}
+.upload-button{display:inline-block;background:var(--forest);color:white;padding:12px 20px;border-radius:9px;cursor:pointer;font-weight:700;margin-top:8px}
+.upload-button:hover{background:var(--leaf)}
+#imageFile{display:none}
+#imagePreview{display:block;max-width:220px;max-height:200px;width:auto;height:auto;object-fit:contain;margin:15px auto 5px;border-radius:10px;border:1px solid #ddd}
+#fileName{font-size:13px;color:#17452e;overflow-wrap:anywhere}
+.image-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+.image-note{font-size:12px;color:#777}
+table{width:100%;border-collapse:separate;border-spacing:0;min-width:700px}
+th,td{padding:12px;border-bottom:1px solid #eee;text-align:left}
+th{background:var(--forest);color:#fff;font-size:12px;text-transform:uppercase;letter-spacing:.7px}
+th:first-child{border-top-left-radius:9px}th:last-child{border-top-right-radius:9px}
+td{font-size:13px;color:#405044;background:#fff}
+tbody tr:hover td{background:#fbfcf8}
+.table-wrap{overflow-x:auto}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+.section-kicker{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:#8a9a8c;font-weight:800;margin:0 0 7px}
+
+.section-brand-header{display:flex;align-items:center;gap:14px;padding:15px 17px;margin-bottom:18px;border:1px solid #e7ece5;border-radius:14px;background:linear-gradient(110deg,#fffdf8,#f4f8f1);box-shadow:0 5px 18px rgba(23,59,42,.045)}
+.section-brand-logo{width:54px;height:54px;flex:0 0 54px;object-fit:contain;padding:5px;border-radius:12px;background:#fff;border:1px solid #ead7ae;box-shadow:0 3px 10px rgba(23,59,42,.08)}
+.section-brand-copy{min-width:0}
+.section-brand-copy .section-kicker{margin:0 0 4px}
+.section-brand-copy h2{margin:0;color:var(--forest);font:700 21px/1.2 Georgia,serif}
+.section-brand-copy p:last-child{margin:4px 0 0;color:var(--muted);font-size:12px}
+#overview .section-brand-header{grid-column:1/-1}
+@media(max-width:520px){.section-brand-header{padding:12px;gap:11px}.section-brand-logo{width:46px;height:46px;flex-basis:46px}.section-brand-copy h2{font-size:18px}}
+
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.panel-head h2{margin-bottom:8px}
+.field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px}
+.field-grid>div{min-width:0}
+.category-row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.category-row select{flex:1;min-width:180px}
+.category-row input{flex:1;min-width:150px}
+.category-row button{white-space:nowrap}
+.district-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px;margin:15px 0}
+.district-option{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid #e4ebe2;border-radius:10px;background:#fbfdf9;font-size:13px;font-weight:600}
+.district-option input{width:17px;height:17px;accent-color:var(--leaf)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0 18px}
+.toolbar input,.toolbar select{max-width:260px;margin:0!important}
+.status-pill{display:inline-block;padding:5px 9px;border-radius:999px;background:#edf5ed;color:#245d3c;font-size:11px;font-weight:800}
+.status-pending{background:#fff4d9;color:#8a5a08}
+.status-confirmed,.status-processing{background:#e7f2ff;color:#235b91}
+.status-shipped{background:#eeeaff;color:#5c4b9b}
+.status-delivered{background:#e6f5e9;color:#216b36}
+.status-cancelled{background:#ffeded;color:#a12d2d}
+.order-detail{white-space:pre-wrap;max-width:320px;line-height:1.5}
+#districtStatus,#ordersStatus{margin-top:10px;font-size:13px;font-weight:700}
+@media(max-width:850px){
+  .admin-layout{display:block}
+  .admin-sidebar{position:relative;width:auto;height:auto;padding:10px 12px;overflow:visible}
+  .sidebar-brand{padding:5px 8px 12px;margin-bottom:10px}
+  .sidebar-logo-frame{width:42px;height:42px;flex-basis:42px}
+  .sidebar-label,.sidebar-foot{display:none}
+  .sidebar-nav{display:flex;gap:7px;overflow-x:auto;padding:2px 0 5px}
+  .sidebar-link{white-space:nowrap;padding:8px 10px;font-size:12px;min-height:46px}
+  .sidebar-icon{width:32px;height:32px;flex-basis:32px}
+  .admin-content main{margin:20px auto 40px;padding:0 16px}
+}
+@media(max-width:700px){
+  .admin-header{padding:14px 16px;min-height:unset;align-items:center}
+  .admin-logo-frame{width:56px;height:56px;flex-basis:56px;border-radius:14px}
+  .admin-brand{gap:11px}
+  .brand-kicker{font-size:8px;letter-spacing:1.2px}
+  .admin-brand-copy h1{font-size:20px}
+  .admin-subtitle{font-size:10px}
+  .logout{padding:9px 12px;min-height:39px;font-size:12px}
+  main{margin:20px auto 35px;padding:0 12px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .stat{padding:17px 16px}
+  .stat p{font-size:28px}
+  .stat h3{font-size:10px}
+  .panel{padding:18px 15px;border-radius:14px}
+  .panel h2{font-size:20px}
+}
+@media(max-width:650px){
+  .field-grid{grid-template-columns:1fr}
+  .toolbar>*{max-width:none!important;width:100%}
+  .category-row>*{width:100%}
+}
+@media(max-width:520px){
+  .sidebar-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .sidebar-link{justify-content:flex-start;white-space:normal}
+  .admin-content main{padding:0 11px}
+}
+@media(max-width:420px){
+  .admin-header{align-items:flex-start}
+  .admin-brand-copy h1{font-size:18px}
+  .admin-subtitle{max-width:175px;line-height:1.4}
+  .logout{font-size:11px;padding:8px 10px}
+}
+</style>
+</head>
+
+<body>
+<header class="admin-header">
+  <div class="admin-brand">
+    <div class="admin-logo-frame">
+      <img src="assets/AKS Homemade Food Products Logo 1.png" alt="AKS Food Products logo" class="admin-logo"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
+      <span class="logo-fallback" aria-hidden="true">AKS</span>
+    </div>
+    <div class="admin-brand-copy">
+      <p class="brand-kicker">AKS HOMEMADE • MADE WITH LOVE</p>
+      <h1>AKS <span>Admin Portal</span></h1>
+      <p class="admin-subtitle">Manage your products, orders and store inventory</p>
+    </div>
+  </div>
+  <button class="logout" id="logoutBtn" type="button">↪ Logout</button>
+</header>
+
+<div class="admin-layout">
+  <aside class="admin-sidebar" aria-label="Admin sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo-frame">
+        <img src="assets/AKS Homemade Food Products Logo 1.png" alt="AKS Food Products" class="sidebar-logo"
+          onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
+        <span class="sidebar-logo-fallback" aria-hidden="true">AKS</span>
+      </div>
+      <div class="sidebar-brand-text"><strong>ADMIN</strong><span>Store Dashboard</span></div>
+    </div>
+
+    <p class="sidebar-label">Store workspace</p>
+    <nav class="sidebar-nav">
+      <a class="sidebar-link active" href="#overview">
+        <span class="sidebar-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/></svg></span>
+        <span>Overview</span>
+      </a>
+      <a class="sidebar-link" href="#product-editor">
+        <span class="sidebar-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+        <span>Add Product</span>
+      </a>
+      <a class="sidebar-link" href="#manage-products">
+        <span class="sidebar-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span>
+        <span>Manage Products</span>
+      </a>
+      <a class="sidebar-link" href="#orders-management">
+        <span class="sidebar-icon"><svg viewBox="0 0 24 24"><path d="M3 4h2l2.2 11h11.6L21 8H6"/><circle cx="9" cy="19" r="1.5"/><circle cx="18" cy="19" r="1.5"/></svg></span>
+        <span>Orders Management</span>
+      </a>
+      <a class="sidebar-link" href="#delivery-settings">
+        <span class="sidebar-icon"><svg viewBox="0 0 24 24"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+        <span>Delivery Districts</span>
+      </a>
+    </nav>
+    <div class="sidebar-foot"><strong>AKS FOOD PRODUCTS</strong><br>control centre<br>Manage catalogue, orders and delivery coverage.</div>
+  </aside>
+
+  <div class="admin-content">
+    <main>
+      <section class="stats admin-section active-section" id="overview">
+        <div class="section-brand-header">
+          <img class="section-brand-logo" src="assets/AKS Homemade Food Products Logo 1.png" alt="AKS Food Products logo" onerror="this.style.display='none'">
+          <div class="section-brand-copy">
+            <p class="section-kicker">AKS FOOD PRODUCTS • ADMIN PORTAL</p>
+            <h2>Overview</h2>
+            <p>A clear view of your products, orders and daily store activity.</p>
+          </div>
+        </div>
+        <div class="stat"><h3>Total Products</h3><p id="totalProducts">0</p></div>
+        <div class="stat"><h3>Active Products</h3><p id="activeProducts">0</p></div>
+        <div class="stat"><h3>Inactive Products</h3><p id="inactiveProducts">0</p></div>
+        <div class="stat"><h3>Total Orders</h3><p id="totalOrders">0</p><small>Orders stored in Supabase</small></div>
+        <div class="stat"><h3>Pending Orders</h3><p id="pendingOrders">0</p><small>Awaiting action</small></div>
+      </section>
+
+      <section class="panel admin-section" id="product-editor">
+        <div class="section-brand-header">
+          <img class="section-brand-logo" src="assets/AKS Homemade Food Products Logo 1.png" alt="AKS Food Products logo" onerror="this.style.display='none'">
+          <div class="section-brand-copy">
+            <p class="section-kicker">AKS FOOD PRODUCTS • ADMIN PORTAL</p>
+            <h2>Add Product</h2>
+            <p>Create a product listing and add it to your AKS catalogue.</p>
+          </div>
+        </div>
+        <h2 id="formTitle">Add New Product</h2>
+        <form id="productForm">
+          <input type="hidden" id="productId">
+          <label for="name">Product Name</label>
+          <input id="name" required placeholder="Product name">
+          <label for="description">Description</label>
+          <textarea id="description" placeholder="Product description"></textarea>
+          <label for="category">Product Category</label>
+          <div class="category-row">
+            <select id="category"><option value="">Choose a category</option></select>
+            <input id="newCategory" placeholder="Type a new category name">
+          </div>
+          <small style="display:block;color:#718075;margin:-5px 0 14px">Choose an existing category, or type a new category name. The new category will be saved when you save the product.</small>
+          <label for="price">Price (₹)</label>
+          <input id="price" type="number" min="0" step="0.01" required placeholder="80">
+          <label for="pack_size">Pack Size</label>
+          <input id="pack_size" placeholder="250 g">
+          <label for="stock_quantity">Stock Quantity</label>
+          <input id="stock_quantity" type="number" min="0" step="1" value="0">
+          <h3>Product Image Upload</h3>
+          <div class="upload-box">
+            <div class="upload-icon">📷</div>
+            <h3>Choose Product Image</h3>
+            <p>Upload an image from your computer or mobile device.</p>
+            <label for="imageFile" class="upload-button">📁 Choose from This PC / Device</label>
+            <input type="file" id="imageFile" accept="image/jpeg,image/png,image/webp">
+            <p id="fileName">No image selected</p>
+            <img id="imagePreview" class="hidden" alt="Product image preview">
+            <div class="image-actions"><button type="button" id="removeImageBtn" class="danger hidden">Remove Selected Image</button></div>
+            <p class="image-note">Supported formats: JPG, JPEG, PNG and WEBP. Maximum size: 5 MB.</p>
+          </div>
+          <label for="image_url">Or Enter Product Image URL</label>
+          <input id="image_url" type="url" placeholder="https://example.com/image.jpg">
+          <label><input id="is_active" type="checkbox" checked style="width:auto;margin-right:7px">Active product</label>
+          <br><br>
+          <button class="primary" type="submit" id="saveBtn">Save Product</button>
+          <button class="secondary" type="button" id="cancelBtn">Cancel / Clear</button>
+        </form>
+        <p id="status" role="status"></p>
+      </section>
+
+      <section class="panel admin-section" id="orders-management">
+        <div class="section-brand-header">
+          <img class="section-brand-logo" src="assets/AKS Homemade Food Products Logo 1.png" alt="AKS Food Products logo" onerror="this.style.display='none'">
+          <div class="section-brand-copy">
+            <p class="section-kicker">AKS FOOD PRODUCTS • ADMIN PORTAL</p>
+            <h2>Orders Management</h2>
+            <p>Review customer orders, search records and update fulfilment status.</p>
+          </div>
+        </div>
+        <div class="panel-head"><div><p class="section-kicker">Sales & fulfilment</p><h2>Orders Management</h2></div>
+          <button class="secondary" id="refreshOrdersBtn" type="button">↻ Refresh Orders</button>
+        </div>
+        <div class="toolbar">
+          <input id="orderSearch" placeholder="Search customer, phone or order ID">
+          <select id="orderStatusFilter">
+            <option value="">All order statuses</option><option>Pending</option><option>Confirmed</option><option>Processing</option><option>Shipped</option><option>Delivered</option><option>Cancelled</option>
+          </select>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Order</th><th>Customer</th><th>District</th><th>Items</th><th>Total</th><th>Date</th><th>Status</th><th>Update</th></tr></thead>
+          <tbody id="ordersList"><tr><td colspan="8">Loading orders...</td></tr></tbody>
+        </table></div>
+        <p id="ordersStatus" role="status"></p>
+      </section>
+
+      <section class="panel admin-section" id="delivery-settings">
+        <div class="section-brand-header">
+          <img class="section-brand-logo" src="assets/AKS Homemade Food Products Logo 1.png" alt="AKS Food Products logo" onerror="this.style.display='none'">
+          <div class="section-brand-copy">
+            <p class="section-kicker">AKS FOOD PRODUCTS • ADMIN PORTAL</p>
+            <h2>Delivery Districts</h2>
+            <p>Choose the districts where customers are allowed to place orders.</p>
+          </div>
+        </div>
+        <h2>Allowed Delivery Districts</h2>
+        <p>Select one or more districts where customers can place orders.</p>
+        <div class="toolbar">
+          <button type="button" class="secondary" id="selectAllDistricts">Select all</button>
+          <button type="button" class="secondary" id="clearDistricts">Clear all</button>
+        </div>
+        <div id="districtOptions" class="district-grid">Loading district settings...</div>
+        <button type="button" class="primary" id="saveDistrictsBtn">Save Allowed Districts</button>
+        <p id="districtStatus" role="status"></p>
+      </section>
+
+      <section class="panel admin-section" id="manage-products">
+        <div class="section-brand-header">
+          <img class="section-brand-logo" src="assets/AKS Homemade Food Products Logo 1.png" alt="AKS Food Products logo" onerror="this.style.display='none'">
+          <div class="section-brand-copy">
+            <p class="section-kicker">AKS FOOD PRODUCTS • ADMIN PORTAL</p>
+            <h2>Manage Products</h2>
+            <p>View, edit, refresh and remove products in your catalogue.</p>
+          </div>
+        </div>
+        <div class="panel-head"><div><p class="section-kicker">Inventory catalogue</p><h2>Manage Products</h2></div></div>
+        <button class="secondary" id="refreshBtn" type="button">↻ Refresh Products</button><br><br>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Image</th><th>Name</th><th>Price</th><th>Pack</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="productList"><tr><td colspan="7">Loading...</td></tr></tbody>
+        </table></div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const BUCKET_NAME = "product-images";
+const statusBox = document.getElementById("status");
+let products = [];
+let selectedImageFile = null;
+let imagePreviewUrl = null;
+let orders = [];
+let allowedDistricts = ["Pudukkottai"];
+
+const DISTRICTS = [
+  "Ariyalur","Chengalpattu","Chennai","Coimbatore","Cuddalore","Dharmapuri",
+  "Dindigul","Erode","Kallakurichi","Kancheepuram","Kanniyakumari","Karur",
+  "Krishnagiri","Madurai","Mayiladuthurai","Nagapattinam","Namakkal",
+  "Nilgiris","Perambalur","Pudukkottai","Ramanathapuram","Ranipet","Salem",
+  "Sivaganga","Tenkasi","Thanjavur","Theni","Thoothukudi","Tiruchirappalli",
+  "Tirunelveli","Tirupathur","Tiruppur","Tiruvallur","Tiruvannamalai",
+  "Tiruvarur","Vellore","Viluppuram","Virudhunagar"
+];
+
+function showStatus(message,isError=false){
+  statusBox.textContent=message;
+  statusBox.style.color=isError?"#b83232":"#286b45";
+}
+function refreshCategoryOptions(selected=""){
+  const select=document.getElementById("category");
+  const values=[...new Set([
+    "Traditional Snacks","Millet Snacks","Murukku","Traditional Sweets",
+    "Healthy Snacks","Laddu & Urundai","Festival Specials",
+    ...products.map(p=>String(p.category||"").trim()).filter(Boolean)
+  ])].sort((a,b)=>a.localeCompare(b));
+  select.replaceChildren(new Option("Choose a category",""));
+  values.forEach(value=>select.add(new Option(value,value)));
+  if(selected&&!values.includes(selected))select.add(new Option(selected,selected));
+  select.value=selected;
+}
+document.getElementById("category").addEventListener("change",()=>document.getElementById("newCategory").value="");
+
+function renderDistrictOptions(){
+  const root=document.getElementById("districtOptions");
+  root.replaceChildren();
+  DISTRICTS.forEach(name=>{
+    const label=document.createElement("label");label.className="district-option";
+    const input=document.createElement("input");input.type="checkbox";input.value=name;
+    input.checked=allowedDistricts.some(d=>d.toLowerCase()===name.toLowerCase());
+    const span=document.createElement("span");span.textContent=name;
+    label.append(input,span);root.append(label);
+  });
+}
+async function loadDistrictSettings(){
+  const {data,error}=await db.from("store_settings").select("allowed_districts").eq("id",1).maybeSingle();
+  if(error){
+    document.getElementById("districtStatus").textContent="Settings table not ready: "+error.message+" — check the SQL setup and RLS policies.";
+    renderDistrictOptions();return;
+  }
+  if(data&&Array.isArray(data.allowed_districts))allowedDistricts=data.allowed_districts;
+  renderDistrictOptions();
+  document.getElementById("districtStatus").textContent="Currently enabled: "+allowedDistricts.length+" district(s).";
+}
+document.getElementById("selectAllDistricts").addEventListener("click",()=>document.querySelectorAll("#districtOptions input").forEach(x=>x.checked=true));
+document.getElementById("clearDistricts").addEventListener("click",()=>document.querySelectorAll("#districtOptions input").forEach(x=>x.checked=false));
+document.getElementById("saveDistrictsBtn").addEventListener("click",async()=>{
+  const chosen=[...document.querySelectorAll("#districtOptions input:checked")].map(x=>x.value);
+  if(!chosen.length){document.getElementById("districtStatus").textContent="Select at least one district.";return;}
+  const btn=document.getElementById("saveDistrictsBtn");btn.disabled=true;btn.textContent="Saving...";
+  try{
+    const {error}=await db.from("store_settings").upsert({id:1,allowed_districts:chosen,updated_at:new Date().toISOString()},{onConflict:"id"});
+    if(error)throw error;
+    allowedDistricts=chosen;
+    document.getElementById("districtStatus").textContent="Saved! "+chosen.length+" district(s) are allowed. Ensure the customer checkout page reads this setting.";
+  }catch(error){document.getElementById("districtStatus").textContent="Save failed: "+error.message;}
+  finally{btn.disabled=false;btn.textContent="Save Allowed Districts";}
+});
+
+function receiptEscape(value){
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[ch]));
+}
+function money(value){
+  return "₹" + Number(value || 0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function printOrderReceipt(order){
+  const receiptWindow=window.open("","_blank","width=820,height=900");
+  if(!receiptWindow){
+    alert("Please allow pop-ups for this website to print the receipt.");
+    return;
+  }
+
+  const items=Array.isArray(order.order_items) ? order.order_items : [];
+  const itemRows=items.map((item,index)=>{
+    const name=receiptEscape(item.name || item.product_name || "Product");
+    const pack=receiptEscape(item.pack || item.pack_size || "");
+    const qty=Number(item.quantity || 1);
+    const price=Number(item.price || 0);
+    const lineTotal=Number(item.line_total ?? (price*qty));
+    return `<tr>
+      <td class="center">${index+1}</td>
+      <td><strong>${name}</strong>${pack ? `<small>${pack}</small>` : ""}</td>
+      <td class="center">${qty}</td>
+      <td class="right">${money(price)}</td>
+      <td class="right">${money(lineTotal)}</td>
+    </tr>`;
+  }).join("");
+
+  const orderDate=order.created_at
+    ? new Date(order.created_at).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"})
+    : "—";
+  const orderId=receiptEscape(order.id || "");
+  const customerName=receiptEscape(order.customer_name || "Customer");
+  const phone=receiptEscape(order.customer_phone || order.phone || "—");
+  const address=receiptEscape(order.customer_address || "—").replace(/\n/g,"<br>");
+  const district=receiptEscape(order.district || "—");
+  const email=receiptEscape(order.customer_email || "");
+  const notes=receiptEscape(order.customer_notes || "");
+  const status=receiptEscape(order.status || "Pending");
+  const subtotal=Number(order.subtotal ?? items.reduce((sum,item)=>sum+Number(item.line_total ?? Number(item.price||0)*Number(item.quantity||1)),0));
+  const delivery=Number(order.delivery_fee || 0);
+  const total=Number(order.total_amount ?? order.total ?? subtotal+delivery);
+  const logoUrl=new URL("assets/AKS Homemade Food Products Logo 1.png",window.location.href).href;
+
+  receiptWindow.document.open();
+  receiptWindow.document.write(`<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Receipt - AKS Food Products - ${orderId}</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:28px;background:#f2f3ef;color:#263329;font-family:Arial,sans-serif}
+.receipt{max-width:760px;margin:0 auto;background:#fff;padding:34px 38px;border:1px solid #e4e8e1}
+.brand{text-align:center;border-bottom:2px solid #d8a64d;padding-bottom:18px;margin-bottom:20px}
+.logo{width:100px;height:100px;object-fit:contain;display:block;margin:0 auto 8px}
+.brand h1{margin:4px 0;color:#173b2a;font-family:Georgia,serif;font-size:25px}
+.brand p{margin:5px 0;color:#657267;font-size:12px;letter-spacing:1px}
+.receipt-title{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:18px 0}
+.receipt-title h2{margin:0;color:#173b2a;font-size:19px}
+.status{border:1px solid #d8a64d;border-radius:20px;padding:6px 12px;color:#173b2a;font-size:11px;font-weight:bold}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;margin:18px 0 22px;font-size:13px}
+.meta div{line-height:1.55;overflow-wrap:anywhere}
+.meta strong{display:block;color:#718075;font-size:10px;text-transform:uppercase;letter-spacing:.7px}
+.customer{padding:14px;background:#f7f9f5;border-radius:8px;margin-bottom:20px;font-size:13px;line-height:1.6}
+.customer h3{margin:0 0 7px;color:#173b2a;font-size:14px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#173b2a;color:white;padding:10px 8px;text-align:left}
+td{padding:10px 8px;border-bottom:1px solid #e8ece6;vertical-align:top}
+td small{display:block;color:#778278;margin-top:3px}
+.center{text-align:center}.right{text-align:right}
+.totals{width:min(330px,100%);margin:18px 0 0 auto;font-size:13px}
+.totals div{display:flex;justify-content:space-between;padding:6px 0}
+.grand{border-top:2px solid #d8a64d;margin-top:5px;padding-top:12px!important;font-size:18px;font-weight:bold;color:#173b2a}
+.notes{margin-top:18px;padding:12px;background:#fffaf1;border-left:3px solid #d8a64d;font-size:12px;line-height:1.5}
+.thanks{text-align:center;margin-top:28px;padding-top:16px;border-top:1px dashed #cbd4ca;color:#536354;font-size:12px;line-height:1.7}
+.thanks strong{color:#173b2a;font-family:Georgia,serif;font-size:16px}
+@media print{body{padding:0;background:#fff}.receipt{max-width:none;border:0;padding:12mm 10mm;margin:0}.no-print{display:none!important}@page{size:A4;margin:10mm}}
+@media(max-width:560px){body{padding:8px}.receipt{padding:20px 14px}.meta{grid-template-columns:1fr}.receipt-title{align-items:flex-start}}
+</style></head><body>
+<article class="receipt">
+<header class="brand">
+<img class="logo" src="${receiptEscape(logoUrl)}" alt="AKS Food Products logo">
+<h1>AKS FOOD PRODUCTS</h1>
+<p>HOMEMADE • TRADITIONAL • MADE WITH LOVE</p>
+</header>
+<div class="receipt-title"><h2>ORDER RECEIPT</h2><span class="status">${status}</span></div>
+<div class="meta">
+<div><strong>Receipt / Order ID</strong>${orderId}</div>
+<div><strong>Order Date</strong>${receiptEscape(orderDate)}</div>
+</div>
+<section class="customer">
+<h3>Customer Details</h3>
+<strong>${customerName}</strong><br>
+Phone: ${phone}<br>
+${email ? `Email: ${email}<br>` : ""}
+Delivery Address: ${address}<br>
+District: ${district}
+</section>
+<table><thead><tr><th style="width:7%">#</th><th>Product</th><th class="center">Qty</th><th class="right">Price</th><th class="right">Amount</th></tr></thead>
+<tbody>${itemRows || '<tr><td colspan="5" class="center">No item details available</td></tr>'}</tbody></table>
+<section class="totals">
+<div><span>Subtotal</span><strong>${money(subtotal)}</strong></div>
+<div><span>Delivery Charge</span><strong>${money(delivery)}</strong></div>
+<div class="grand"><span>Total</span><span>${money(total)}</span></div>
+</section>
+${notes ? `<div class="notes"><strong>Customer Instructions:</strong><br>${notes}</div>` : ""}
+<footer class="thanks"><strong>Thank you for choosing AKS!</strong><br>From our home to your home with love.<br>AKS Food Products</footer>
+</article>
+<script>
+window.addEventListener("load",()=>{
+  const logo=document.querySelector(".logo");
+  const doPrint=()=>setTimeout(()=>{window.focus();window.print();},350);
+  if(logo.complete)doPrint();
+  else {logo.addEventListener("load",doPrint,{once:true});logo.addEventListener("error",doPrint,{once:true});}
+});
+<\/script>
+</body></html>`);
+  receiptWindow.document.close();
+}
+
+
+function orderItemsText(items){
+  if(!Array.isArray(items))return typeof items==="string"?items:"—";
+  return items.map(item=>`${item.name||item.product_name||"Item"} × ${item.quantity||1}`).join("\n")||"—";
+}
+function statusClass(status){return "status-"+String(status||"pending").toLowerCase().replace(/[^a-z]/g,"");}
+function renderOrders(){
+  const body=document.getElementById("ordersList");body.replaceChildren();
+  const term=document.getElementById("orderSearch").value.trim().toLowerCase();
+  const filter=document.getElementById("orderStatusFilter").value.toLowerCase();
+  const filtered=orders.filter(o=>{
+    const hay=[o.id,o.customer_name,o.customer_phone,o.phone,o.district].join(" ").toLowerCase();
+    return (!term||hay.includes(term))&&(!filter||String(o.status||"Pending").toLowerCase()===filter);
+  });
+  if(!filtered.length){
+    const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=8;td.textContent="No matching orders found.";tr.append(td);body.append(tr);
+  }
+  filtered.forEach(o=>{
+    const tr=document.createElement("tr");
+    const add=(value,cls)=>{const td=document.createElement("td");if(cls)td.className=cls;td.textContent=value;tr.append(td);};
+    add("#"+String(o.id).slice(0,8));
+    add((o.customer_name||"Customer")+(o.customer_phone||o.phone?"\n"+(o.customer_phone||o.phone):""));
+    add(o.district||"—");add(orderItemsText(o.order_items||o.items),"order-detail");
+    add("₹"+Number(o.total_amount??o.total??0).toFixed(2));
+    add(o.created_at?new Date(o.created_at).toLocaleString("en-IN"):"—");
+    const statusTd=document.createElement("td"),pill=document.createElement("span");
+    pill.className="status-pill "+statusClass(o.status);pill.textContent=o.status||"Pending";statusTd.append(pill);tr.append(statusTd);
+    const actionTd=document.createElement("td"),select=document.createElement("select");
+    ["Pending","Confirmed","Processing","Shipped","Delivered","Cancelled"].forEach(v=>select.add(new Option(v,v)));
+    select.value=o.status||"Pending";select.setAttribute("aria-label","Update order status");
+    const isCancelled=String(o.status||"").toLowerCase()==="cancelled";
+    const isCustomerCancelled=isCancelled&&String(o.cancellation_source||"").toLowerCase()==="customer";
+    const update=document.createElement("button");update.className=isCustomerCancelled?"secondary":"primary";
+    update.textContent=isCustomerCancelled?"Locked":"Save";
+    if(isCustomerCancelled){
+      select.disabled=true;
+      update.disabled=true;
+      select.title="Customer-cancelled orders cannot be reopened.";
+      update.title="This order was cancelled by the customer and is permanently locked.";
+    }else{
+      update.addEventListener("click",()=>updateOrderStatus(o.id,select.value,update));
+    }
+    actionTd.append(select,update);
+    const print=document.createElement("button");
+    print.className="secondary";
+    print.textContent="Print Receipt";
+    print.type="button";
+    print.style.marginTop="7px";
+    print.addEventListener("click",()=>printOrderReceipt(o));
+    actionTd.append(print);
+    if(isCustomerCancelled){
+      const note=document.createElement("small");note.textContent="Customer cancelled · permanently locked";
+      note.style.cssText="display:block;color:#a12d2d;font-size:10px;margin-top:6px;";
+      actionTd.append(note);
+    }else if(isCancelled){
+      const note=document.createElement("small");note.textContent="Admin cancelled · can be reopened";
+      note.style.cssText="display:block;color:#286b45;font-size:10px;margin-top:6px;";
+      actionTd.append(note);
+    }
+    tr.append(actionTd);body.append(tr);
+  });
+  document.getElementById("totalOrders").textContent=orders.length;
+  document.getElementById("pendingOrders").textContent=orders.filter(o=>String(o.status||"pending").toLowerCase()==="pending").length;
+}
+async function loadOrders(){
+  document.getElementById("ordersStatus").textContent="Loading orders...";
+  const {data,error}=await db.from("orders").select("*").order("created_at",{ascending:false}).limit(300);
+  if(error){
+    orders=[];renderOrders();
+    document.getElementById("ordersStatus").textContent="Orders table unavailable: "+error.message+" — check SQL and checkout connection.";return;
+  }
+  orders=data||[];renderOrders();
+  document.getElementById("ordersStatus").textContent=orders.length+" order(s) loaded.";
+}
+async function updateOrderStatus(id,status,button){
+  const existingOrder=orders.find(order=>String(order.id)===String(id));
+  if(existingOrder&&String(existingOrder.status||"").toLowerCase()==="cancelled"&&String(existingOrder.cancellation_source||"").toLowerCase()==="customer"){
+    document.getElementById("ordersStatus").textContent="This order was cancelled by the customer and cannot be reopened.";
+    await loadOrders();
+    return;
+  }
+  button.disabled=true;button.textContent="Saving...";
+  try{
+    const {error}=await db.from("orders").update({status}).eq("id",id);
+    if(error)throw error;
+    document.getElementById("ordersStatus").textContent="Order status updated.";
+    await loadOrders();
+  }catch(error){document.getElementById("ordersStatus").textContent="Status update failed: "+error.message;}
+  finally{button.disabled=false;button.textContent="Save";}
+}
+document.getElementById("orderSearch").addEventListener("input",renderOrders);
+document.getElementById("orderStatusFilter").addEventListener("change",renderOrders);
+document.getElementById("refreshOrdersBtn").addEventListener("click",loadOrders);
+
+function clearSelectedImage(){
+  selectedImageFile=null;document.getElementById("imageFile").value="";
+  document.getElementById("fileName").textContent="No image selected";
+  document.getElementById("imagePreview").classList.add("hidden");
+  document.getElementById("imagePreview").removeAttribute("src");
+  document.getElementById("removeImageBtn").classList.add("hidden");
+  if(imagePreviewUrl){URL.revokeObjectURL(imagePreviewUrl);imagePreviewUrl=null;}
+}
+function clearPreviewOnly(){
+  const preview=document.getElementById("imagePreview");preview.classList.add("hidden");preview.removeAttribute("src");
+  if(imagePreviewUrl){URL.revokeObjectURL(imagePreviewUrl);imagePreviewUrl=null;}
+}
+function resetForm(){
+  document.getElementById("productForm").reset();
+  document.getElementById("productId").value="";
+  document.getElementById("is_active").checked=true;
+  document.getElementById("newCategory").value="";
+  refreshCategoryOptions("");
+  document.getElementById("formTitle").textContent="Add New Product";
+  document.getElementById("saveBtn").textContent="Save Product";
+  clearSelectedImage();showStatus("");
+}
+document.getElementById("imageFile").addEventListener("change",function(){
+  const file=this.files[0];if(!file)return;
+  const allowedTypes=["image/jpeg","image/png","image/webp"];
+  if(!allowedTypes.includes(file.type)){showStatus("Invalid image format. Choose JPG, PNG or WEBP.",true);this.value="";return;}
+  if(file.size>5*1024*1024){showStatus("Image is too large. Maximum allowed size is 5 MB.",true);this.value="";return;}
+  clearPreviewOnly();selectedImageFile=file;
+  document.getElementById("fileName").textContent="Selected: "+file.name;
+  imagePreviewUrl=URL.createObjectURL(file);
+  const preview=document.getElementById("imagePreview");preview.src=imagePreviewUrl;preview.classList.remove("hidden");
+  document.getElementById("removeImageBtn").classList.remove("hidden");
+  document.getElementById("image_url").value="";
+  showStatus("Image selected successfully. Preview it before saving.");
+});
+document.getElementById("removeImageBtn").addEventListener("click",()=>{clearSelectedImage();showStatus("Selected image removed.");});
+
+async function uploadProductImage(file){
+  const extension=file.type==="image/jpeg"?"jpg":file.type==="image/png"?"png":"webp";
+  const filePath="products/"+crypto.randomUUID()+"."+extension;
+  showStatus("Uploading image to Supabase Storage...");
+  const {data,error}=await db.storage.from(BUCKET_NAME).upload(filePath,file,{cacheControl:"3600",upsert:false,contentType:file.type});
+  if(error)throw new Error("Image upload failed: "+error.message);
+  const {data:publicData}=db.storage.from(BUCKET_NAME).getPublicUrl(data.path);
+  if(!publicData.publicUrl)throw new Error("Could not generate public image URL.");
+  return publicData.publicUrl;
+}
+
+async function checkAdmin(){
+  const {data:sessionData,error:sessionError}=await db.auth.getSession();
+  if(sessionError||!sessionData.session){window.location.replace("admin.html");return false;}
+  const userId=sessionData.session.user.id;
+  const {data:admin,error}=await db.from("admin_users").select("user_id").eq("user_id",userId).maybeSingle();
+  if(error||!admin){
+    await db.auth.signOut();alert("You are not authorized to access this dashboard.");
+    window.location.replace("admin.html");return false;
+  }
+  return true;
+}
+
+async function loadProducts(){
+  showStatus("Loading products...");
+  const {data,error}=await db.from("products").select("*").order("created_at",{ascending:false});
+  if(error){showStatus("Could not load products: "+error.message,true);return;}
+  products=data||[];
+  const currentCategory=document.getElementById("category").value;
+  refreshCategoryOptions(currentCategory);
+  document.getElementById("totalProducts").textContent=products.length;
+  document.getElementById("activeProducts").textContent=products.filter(p=>p.is_active).length;
+  document.getElementById("inactiveProducts").textContent=products.filter(p=>!p.is_active).length;
+  const list=document.getElementById("productList");list.replaceChildren();
+  if(!products.length){
+    const row=document.createElement("tr"),cell=document.createElement("td");cell.colSpan=7;cell.textContent="No products found. Add your first product.";row.append(cell);list.append(row);
+  }
+  products.forEach(product=>{
+    const row=document.createElement("tr"),imageCell=document.createElement("td");
+    if(product.image_url){
+      const img=document.createElement("img");img.src=product.image_url;img.alt=product.name||"Product";
+      img.style.width="65px";img.style.height="60px";img.style.objectFit="cover";img.style.borderRadius="8px";imageCell.append(img);
+    }else imageCell.textContent="No image";
+    row.append(imageCell);
+    const cell=value=>{const td=document.createElement("td");td.textContent=value;row.append(td);};
+    cell(product.name||"");cell("₹"+product.price);cell(product.pack_size||"-");
+    cell(String(product.stock_quantity??0));cell(product.is_active?"Active":"Inactive");
+    const actionCell=document.createElement("td"),actions=document.createElement("div");actions.className="actions";
+    const editButton=document.createElement("button");editButton.className="secondary";editButton.textContent="Edit";
+    editButton.addEventListener("click",()=>editProduct(product.id));
+    const deleteButton=document.createElement("button");deleteButton.className="danger";deleteButton.textContent="Delete";
+    deleteButton.addEventListener("click",()=>deleteProduct(product.id));
+    actions.append(editButton,deleteButton);actionCell.append(actions);row.append(actionCell);list.append(row);
+  });
+  showStatus("Products loaded successfully.");
+}
+
+document.getElementById("productForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+  const saveBtn=document.getElementById("saveBtn");
+  saveBtn.disabled=true;const originalText=saveBtn.textContent;saveBtn.textContent="Please wait...";
+  try{
+    const id=document.getElementById("productId").value;
+    const wasEditing=Boolean(id);
+    const name=document.getElementById("name").value.trim();
+    const price=Number(document.getElementById("price").value);
+    const stock=Number(document.getElementById("stock_quantity").value||0);
+    if(!name)throw new Error("Product name is required.");
+    if(!Number.isFinite(price)||price<0)throw new Error("Enter a valid product price.");
+    if(!Number.isInteger(stock)||stock<0)throw new Error("Enter a valid stock quantity.");
+    let imageUrl=document.getElementById("image_url").value.trim();
+    if(selectedImageFile)imageUrl=await uploadProductImage(selectedImageFile);
+    const product={
+      name,description:document.getElementById("description").value.trim(),
+      category:document.getElementById("newCategory").value.trim()||document.getElementById("category").value.trim(),
+      price,pack_size:document.getElementById("pack_size").value.trim(),
+      stock_quantity:stock,image_url:imageUrl||null,
+      is_active:document.getElementById("is_active").checked
+    };
+    const result=wasEditing
+      ? await db.from("products").update(product).eq("id",id)
+      : await db.from("products").insert(product);
+    if(result.error)throw result.error;
+    resetForm();
+    await loadProducts();
+    if(wasEditing){
+      showStatus("Product updated successfully!");
+      openAdminSection("manage-products");
+      setTimeout(()=>document.getElementById("manage-products").scrollIntoView({behavior:"smooth",block:"start"}),100);
+    }else{
+      showStatus("Product added successfully!");
+      openAdminSection("product-editor");
+    }
+  }catch(error){showStatus(error.message,true);}
+  finally{saveBtn.disabled=false;saveBtn.textContent=originalText;}
+});
+
+function editProduct(id){
+  const p=products.find(item=>String(item.id)===String(id));
+  if(!p){showStatus("Product not found. Refresh the product list.",true);return;}
+  resetForm();
+  document.getElementById("productId").value=p.id;
+  document.getElementById("name").value=p.name||"";
+  document.getElementById("description").value=p.description||"";
+  refreshCategoryOptions(p.category||"");
+  document.getElementById("category").value=p.category||"";
+  document.getElementById("price").value=p.price??"";
+  document.getElementById("pack_size").value=p.pack_size||"";
+  document.getElementById("stock_quantity").value=p.stock_quantity??0;
+  document.getElementById("image_url").value=p.image_url||"";
+  document.getElementById("is_active").checked=!!p.is_active;
+  if(p.image_url){
+    const preview=document.getElementById("imagePreview");preview.src=p.image_url;preview.classList.remove("hidden");
+    document.getElementById("fileName").textContent="Current product image";
+  }
+  document.getElementById("formTitle").textContent="Edit Product";
+  document.getElementById("saveBtn").textContent="Update Product";
+  showStatus("Editing: "+p.name+". Select a new image if you want to replace the current image.");
+  openAdminSection("product-editor");
+  setTimeout(()=>document.getElementById("product-editor").scrollIntoView({behavior:"smooth",block:"start"}),120);
+}
+
+async function deleteProduct(id){
+  const p=products.find(item=>String(item.id)===String(id));if(!p)return;
+  if(!confirm("Delete "+p.name+"? This cannot be undone."))return;
+  const {error}=await db.from("products").delete().eq("id",id);
+  if(error){showStatus("Delete failed: "+error.message,true);return;}
+  showStatus("Product deleted successfully.");await loadProducts();
+}
+
+document.getElementById("cancelBtn").addEventListener("click",()=>{
+  resetForm();openAdminSection("product-editor");
+});
+document.getElementById("refreshBtn").addEventListener("click",loadProducts);
+document.getElementById("logoutBtn").addEventListener("click",async()=>{
+  const {error}=await db.auth.signOut();
+  if(error){showStatus("Logout failed: "+error.message,true);return;}
+  window.location.replace("admin.html");
+});
+
+const sidebarLinks=document.querySelectorAll(".sidebar-link");
+const adminSections=document.querySelectorAll(".admin-section");
+function openAdminSection(sectionId){
+  adminSections.forEach(section=>section.classList.remove("active-section"));
+  let selectedSection=document.getElementById(sectionId);
+  if(selectedSection&&selectedSection.classList.contains("admin-section")){
+    selectedSection.classList.add("active-section");
+  }else{
+    sectionId="overview";document.getElementById("overview").classList.add("active-section");
+  }
+  sidebarLinks.forEach(link=>link.classList.toggle("active",link.getAttribute("href")==="#"+sectionId));
+  history.replaceState(null,"","#"+sectionId);
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+sidebarLinks.forEach(link=>{
+  link.addEventListener("click",event=>{
+    event.preventDefault();
+    openAdminSection(link.getAttribute("href").slice(1));
+  });
+});
+const requestedSection=window.location.hash.slice(1);
+const requestedElement=document.getElementById(requestedSection);
+if(requestedElement&&requestedElement.classList.contains("admin-section"))openAdminSection(requestedSection);
+else openAdminSection("overview");
+
+(async function startDashboard(){
+  try{
+    if(typeof db==="undefined")throw new Error("Supabase client not found. Check your supabase.js file.");
+    const authorized=await checkAdmin();
+    if(authorized)await Promise.all([loadProducts(),loadOrders(),loadDistrictSettings()]);
+  }catch(error){showStatus("Dashboard error: "+error.message,true);}
+})();
+</script>
+</body>
+</html>
